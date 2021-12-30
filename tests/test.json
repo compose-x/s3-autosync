@@ -1,0 +1,16 @@
+{
+  "files": {
+    "/tmp/tox.ini": {
+      "S3": {
+        "BucketName": "sacrificial-lamb",
+        "ObjectKey": "aws_s3_files_autosync/test-files/tox.ini"
+      }
+    },
+    "/tmp/HISTORY.rst": {
+      "S3": {
+        "BucketName": "sacrificial-lamb",
+        "ObjectKey": "aws_s3_files_autosync/test-files/HISTORY.rst"
+      }
+    }
+  }
+}

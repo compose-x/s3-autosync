@@ -1,0 +1,8 @@
+dist
+Dockerfile
+.dockerignore
+.idea
+.isort.cfg
+layer
+venv
+.venv

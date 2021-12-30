@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "jobs-config",
+  "type": "object",
+  "title": "jobs-config",
+  "id": "jobs-config",
+  "description": "Definition for Files watcher",
+  "additionalProperties": false,
+  "properties": {
+    "files": {
+      "type": "object",
+      "patternProperties": {
+        "^/[\\x00-\\x7F]+$": {
+          "type": "object",
+          "properties": {
+            "Priority": {
+              "type": "string",
+              "enum": [
+                "local",
+                "remote"
+              ],
+              "description": "Whether to prioritize the version in cloud or local if at check time both where modified",
+              "default": "remote"
+            },
+            "S3": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "BucketName",
+                "ObjectKey"
+              ],
+              "properties": {
+                "BucketName": {
+                  "type": "string",
+                  "description": "Name of the S3 Bucket"
+                },
+                "BucketRegion": {
+                  "type": "string",
+                  "description": "S3 Region to use. Default will ignore or retrieve via s3:GetBucketLocation"
+                },
+                "ObjectKey": {
+                  "type": "string",
+                  "description": "Full path to the file to retrieve"
+                },
+                "IamOverride": {
+                  "$ref": "#/definitions/IamOverride"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "IamOverride": {
+      "type": "object",
+      "description": "When source points to AWS, allows to indicate if another role should be used",
+      "properties": {
+        "RoleArn": {
+          "type": "string"
+        },
+        "SessionName": {
+          "type": "string",
+          "default": "S3File@FilesAutoSync",
+          "description": "Name of the IAM session"
+        },
+        "ExternalId": {
+          "type": "string",
+          "description": "The External ID to use when using sts:AssumeRole"
+        }
+      }
+    }
+  }
+}
