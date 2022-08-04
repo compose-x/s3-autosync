@@ -1,5 +1,3 @@
-#  -*- coding: utf-8 -*-
-
 """
 Tests for config input validation
 """
@@ -10,7 +8,7 @@ import pytest
 from jsonschema.exceptions import ValidationError
 from pytest import raises
 
-from aws_s3_files_autosync.files_autosync import init_config
+from aws_s3_files_autosync.common import init_config
 
 HERE = path.abspath(path.dirname(__file__))
 

@@ -1,5 +1,3 @@
-#  -*- coding: utf-8 -*-
-
 """Unit test package for aws_s3_files_autosync."""
 
 from os import environ, path
@@ -9,7 +7,7 @@ from boto3.session import Session
 from botocore.exceptions import ClientError
 from pytest import raises
 
-from aws_s3_files_autosync.files_autosync import File
+from aws_s3_files_autosync.files_autosync import WatchedFolderToSync
 
 HERE = path.abspath(path.dirname(__file__))
 
@@ -27,7 +25,7 @@ def test_simple_file(get_bucket):
         },
         "Priority": "cloud",
     }
-    test_file = File(f"{HERE}/../tox.ini", file_config)
+    test_file = WatchedFolderToSync(f"{HERE}/../tox.ini", file_config)
     test_file.exists()
     test_file.exists_in_s3()
     test_file.upload()
@@ -44,14 +42,14 @@ def test_wrong_bucket():
             "ObjectKey": "aws_s3_files_autosync/test-files/tox.ini",
         }
     }
-    test_file = File(f"{HERE}/../tox.ini", file_config)
+    test_file = WatchedFolderToSync(f"{HERE}/../tox.ini", file_config)
     with raises(ClientError):
         test_file.exists_in_s3()
 
 
 def test_inexistant_key(get_bucket):
     test_session = Session()
-    test_file = File(
+    test_file = WatchedFolderToSync(
         f"{HERE}/../tox.ini",
         {
             "S3": {

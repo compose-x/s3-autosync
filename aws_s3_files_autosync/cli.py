@@ -1,4 +1,3 @@
-#  -*- coding: utf-8 -*-
 #  SPDX-License-Identifier: MPL-2.0
 #  Copyright 2020-2021 John Mille <john@compose-x.io>
 
@@ -8,7 +7,9 @@ import argparse
 import sys
 from os import environ
 
-from .files_autosync import init_config, init_s3_watch_dog
+from aws_s3_files_autosync.common import init_config
+
+# from .files_autosync import init_s3_watch_dog
 from .local_sync import init_local_watch_dog
 
 
@@ -68,14 +69,14 @@ def local_main():
     init_local_watch_dog(config)
 
 
-def s3_main():
-    """
-    Uses custom watchdog logic to look at the files in S3 and locally to decide what to do. Default.
-    :return:
-    """
-    config = main()
-    init_s3_watch_dog(config)
+# def s3_main():
+#     """
+#     Uses custom watchdog logic to look at the files in S3 and locally to decide what to do. Default.
+#     :return:
+#     """
+#     config = main()
+#     init_s3_watch_dog(config)
 
 
-if __name__ == "__main__":
-    sys.exit(s3_main())  # pragma: no cover
+# if __name__ == "__main__":
+#     sys.exit(s3_main())  # pragma: no cover

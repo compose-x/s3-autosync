@@ -1,49 +1,80 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "jobs-config",
+  "$id": "input.json",
   "type": "object",
-  "title": "jobs-config",
-  "id": "jobs-config",
+  "title": "inputs.json",
+  "id": "inputs.json",
   "description": "Definition for Files watcher",
   "additionalProperties": false,
   "properties": {
-    "files": {
+    "folders": {
       "type": "object",
       "patternProperties": {
         "^/[\\x00-\\x7F]+$": {
+          "$ref": "#/definitions/Folder"
+        }
+      }
+    },
+    "mysqlDb": {
+      "uniqueItems": true,
+      "additionalProperties": false,
+      "patternProperties": {
+        "[\\W]+$": {
           "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "s3_default",
+            "hostname",
+            "username",
+            "password",
+            "database",
+            "binlogs-folder"
+          ],
           "properties": {
-            "Priority": {
-              "type": "string",
-              "enum": [
-                "local",
-                "remote"
-              ],
-              "description": "Whether to prioritize the version in cloud or local if at check time both where modified",
-              "default": "remote"
+            "s3_default": {
+              "$ref": "#/definitions/S3"
             },
-            "S3": {
+            "hostname": {
+              "type": "string",
+              "format": "hostname"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "default": 3306,
+              "description": "Override port. If the port is in the hostname too, this is ignored"
+            },
+            "username": {
+              "type": "string",
+              "minLength": 1
+            },
+            "password": {
+              "type": "string",
+              "minLength": 1
+            },
+            "database": {
+              "type": "string"
+            },
+            "binlogs-folder": {
+              "$ref": "#/definitions/Folder"
+            },
+            "dumps": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "BucketName",
-                "ObjectKey"
-              ],
+              "description": "Configure how dumps are created and stored",
               "properties": {
-                "BucketName": {
-                  "type": "string",
-                  "description": "Name of the S3 Bucket"
+                "folder": {
+                  "$ref": "#/definitions/Folder"
                 },
-                "BucketRegion": {
+                "interval": {
                   "type": "string",
-                  "description": "S3 Region to use. Default will ignore or retrieve via s3:GetBucketLocation"
+                  "pattern": "(\\d+[ywdhms]){1,}$",
+                  "description": "interval in cumulative years/weeks/days/hours/minutes/seconds to take dumps."
                 },
-                "ObjectKey": {
-                  "type": "string",
-                  "description": "Full path to the file to retrieve"
-                },
-                "IamOverride": {
-                  "$ref": "#/definitions/IamOverride"
+                "ssm_backup": {
+                  "description": "Stores the S3 path of the latest uploaded snapshot into SSM",
+                  "$ref": "#/definitions/SsmBackup"
                 }
               }
             }
@@ -53,19 +84,135 @@
     }
   },
   "definitions": {
+    "SsmBackup": {
+      "description": "SSM parameter definition with IAM override",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "parameter_name": {
+          "type": "string"
+        },
+        "iam_override": {
+          "$ref": "#/definitions/IamOverride"
+        }
+      }
+    },
+    "Folder": {
+      "type": "object",
+      "required": [
+        "s3"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "whitelist"
+          ]
+        },
+        {
+          "required": [
+            "whitelist_regex"
+          ]
+        },
+        {
+          "required": [
+            "blacklist_regex"
+          ]
+        }
+      ],
+      "properties": {
+        "auto_create": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allows to create the folder if does not already exist."
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "s3",
+            "remote"
+          ],
+          "description": "Whether to prioritize the version in S3 or local if at check time both where modified",
+          "default": "remote"
+        },
+        "S3": {
+          "$ref": "#/definitions/S3"
+        },
+        "whitelist": {
+          "$ref": "#/definitions/Whitelist"
+        },
+        "whitelist_regex": {
+          "$ref": "#/definitions/WhitelistRegex"
+        },
+        "blacklist_regex": {
+          "$ref": "#/definitions/BlacklistRegex"
+        }
+      }
+    },
+    "Whitelist": {
+      "description": "Exact files names to match to observe on events",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "File name"
+      }
+    },
+    "WhitelistRegex": {
+      "type": "array",
+      "description": "List of regular expressions to match files against and detect change for",
+      "items": {
+        "type": "string",
+        "description": "Regular expression to match files to detect"
+      }
+    },
+    "BlacklistRegex": {
+      "type": "array",
+      "description": "List of regular expressions to ignore in folder",
+      "items": {
+        "type": "string",
+        "description": "Regular expression to match files to detect"
+      }
+    },
+    "S3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bucket_name"
+      ],
+      "properties": {
+        "bucket_name": {
+          "type": "string",
+          "description": "Name of the S3 Bucket"
+        },
+        "key_prefix": {
+          "type": "string",
+          "description": "S3 prefix to the files location for storage/backup"
+        },
+        "preserve_folder_path": {
+          "type": "boolean",
+          "default": true,
+          "description": "After the key_prefix, preserves the relative path "
+        },
+        "iam_override": {
+          "$ref": "#/definitions/IamOverride"
+        }
+      }
+    },
     "IamOverride": {
       "type": "object",
       "description": "When source points to AWS, allows to indicate if another role should be used",
+      "required": [
+        "role_arn"
+      ],
       "properties": {
-        "RoleArn": {
+        "role_arn": {
           "type": "string"
         },
-        "SessionName": {
+        "session_name": {
           "type": "string",
           "default": "S3File@FilesAutoSync",
           "description": "Name of the IAM session"
         },
-        "ExternalId": {
+        "external_id": {
           "type": "string",
           "description": "The External ID to use when using sts:AssumeRole"
         }
