@@ -19,26 +19,25 @@ python = "^3.7"
 compose-x-common = "^1.0.4"
 watchdog = "^2.1.9"
 PyYAML = "^6.0"
-jsonschema = "^4.9.0"
+jsonschema = "^4.9"
 importlib-resources = "^5.9.0"
 pytz = "^2022.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
 isort = "^5.10.1"
-flake8 = "^5.0.2"
+flake8 = "^5.0"
 coverage = "^6.4.2"
 pytest = "^7.1.2"
 pre-commit = "^2.20.0"
 tbump = "^6.9.0"
-mypy-boto3 = "^1.24.43"
+mypy-boto3 = "^1.24"
 pyclean = "^2.2.0"
 twine = "^4.0.1"
 pyupgrade = "^2.37.3"
 
 [tool.poetry.scripts]
-files_local_autosync = "aws_s3_files_autosync.cli:local_main"
-files_s3_autosync = "aws_s3_files_autosync.cli:s3_main"
+local-auto-sync = "aws_s3_files_autosync.cli:local_sync_main"
 
 [tool.black]
 line-length = 88

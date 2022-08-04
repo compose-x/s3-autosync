@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Union
 
+from compose_x_common.aws import get_assume_role_session, get_session
+from compose_x_common.compose_x_common import keyisset, set_else_none
+
 if TYPE_CHECKING:
-    from .files_management import S3Config, ManagedFolder
+    from .files_management import ManagedFolder
 
 import datetime
 from datetime import datetime as dt
@@ -18,6 +21,56 @@ from aws_s3_files_autosync.common import setup_logging
 PRIORITY_TO_CLOUD = 1
 PRIORITY_TO_LOCAL = 2
 LOG = setup_logging()
+
+
+def get_iam_override_session(
+    iam_override: dict, src_session: Session = None
+) -> Session:
+    """
+
+    :param iam_override:
+    :param src_session:
+    :return:
+    """
+    src_session = get_session(src_session)
+    kwargs: dict = {}
+    if keyisset("external_id", iam_override):
+        kwargs["external_id"]: str = iam_override["external_id"]
+    session_name = set_else_none("session_name", iam_override)
+    iam_role = set_else_none("iam_role", iam_override)
+    dst_session: Session = get_assume_role_session(
+        src_session, iam_role, session_name, **kwargs
+    )
+    return dst_session
+
+
+class S3Config:
+    """
+    Class to represent the S3 object of the files
+    """
+
+    def __init__(
+        self,
+        bucket_name: str,
+        prefix_key: str,
+        iam_override: dict = None,
+        session: Session = None,
+    ):
+        self.bucket_name = bucket_name
+        self.prefix_key = (
+            prefix_key if not prefix_key.startswith(r"/") else prefix_key[1:]
+        )
+        if iam_override:
+            self.session = get_iam_override_session(iam_override, src_session=session)
+        else:
+            self.session = get_session(session)
+
+    def s3_object(self, file_name: str):
+        return (
+            self.session.resource("s3")
+            .Bucket(self.bucket_name)
+            .Object(f"{self.prefix_key}/{file_name}")
+        )
 
 
 class S3ManagedFile:

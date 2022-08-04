@@ -8,9 +8,7 @@ import sys
 from os import environ
 
 from aws_s3_files_autosync.common import init_config
-
-# from .files_autosync import init_s3_watch_dog
-from .local_sync import init_local_watch_dog
+from aws_s3_files_autosync.local_sync import init_local_watch_dog
 
 
 class MissingConfig(ValueError):
@@ -61,7 +59,7 @@ def main():
     return config
 
 
-def local_main():
+def local_sync_main():
     """
     Uses watchdog to drive the the changes, only based on local files changes.
     """
@@ -69,14 +67,5 @@ def local_main():
     init_local_watch_dog(config)
 
 
-# def s3_main():
-#     """
-#     Uses custom watchdog logic to look at the files in S3 and locally to decide what to do. Default.
-#     :return:
-#     """
-#     config = main()
-#     init_s3_watch_dog(config)
-
-
-# if __name__ == "__main__":
-#     sys.exit(s3_main())  # pragma: no cover
+if __name__ == "__main__":
+    sys.exit(local_sync_main())  # pragma: no cover

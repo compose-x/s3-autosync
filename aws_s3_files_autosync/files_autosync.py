@@ -2,12 +2,13 @@
 #  Copyright 2020-2021 John Mille <john@compose-x.io>
 
 """Files watcher."""
-import time
 
-from .s3_file_mgmt import LOG, S3FileWatcher
+from aws_s3_files_autosync.common import setup_logging
+
+LOG = setup_logging()
 
 
-def handle_both_files_present(file: S3FileWatcher):
+def handle_both_files_present(file):
     """
     Function to go over the conditions when the file is present locally and in S3, of a different size and timestamp
 
@@ -34,7 +35,7 @@ def handle_both_files_present(file: S3FileWatcher):
         file.object.load()
 
 
-def check_s3_changes(file: S3FileWatcher):
+def check_s3_changes(file):
     """
     Function to check whether the file in S3 changed.
     Logic for updates
@@ -68,23 +69,3 @@ def check_s3_changes(file: S3FileWatcher):
         LOG.debug(f"{file} is the same locally and in AWS S3. {file.object.size}")
     else:
         LOG.info(f"WatchedFolderToSync {file} does not exist locally or in S3")
-
-
-# def init_s3_watch_dog(config: dict, interval=5):
-#     """
-#     Function to keep looking at the AWS S3 files and for local changes
-#
-#     :param dict config: The input config for the job
-#     :param int interval: Intervals between checks. The higher, the more S3 API GET call made.
-#     """
-#     files = init_files_jobs(config)
-#     LOG.info(f"S3 watchdog starting for {list(files.keys())}")
-#     while True:
-#         LOG.info("S3 Watchdog running.")
-#         try:
-#             for file_name, file in files.items():
-#                 check_s3_changes(file)
-#             time.sleep(interval)
-#         except KeyboardInterrupt:
-#             LOG.info("\rKeyboard interruption. Exit.")
-#             break

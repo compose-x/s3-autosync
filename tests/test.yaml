@@ -1,10 +1,16 @@
-files:
-  /tmp/tox.ini:
-    S3:
-      BucketName: sacrificial-lamb
-      ObjectKey: aws_s3_files_autosync/test-files/tox.ini
+folders:
+  /tmp/tox:
+    s3:
+      bucket_name: sacrificial-lamb
+      prefix_key: aws_s3_files_autosync/test-files/tox.ini
+    whitelist_regex:
+      - "*.bin-log.*$"
 
-  /tmp/HISTORY.rst:
-    S3:
-      BucketName: sacrificial-lamb
-      ObjectKey: aws_s3_files_autosync/test-files/HISTORY.rst
+  /tmp/local_test:
+    s3:
+      bucket_name: sacrificial-lamb
+      prefix_key: aws_s3_files_autosync/test-files/HISTORY.rst
+    blacklist_regex: # voluntarily invalid regex
+      - "*.pyc$"
+    whitelist_regex:
+      - ".*.py$"

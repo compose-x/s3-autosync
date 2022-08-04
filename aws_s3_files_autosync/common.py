@@ -56,13 +56,12 @@ LOG = setup_logging()
 
 def validate_input(config):
     source = pkg_files("aws_s3_files_autosync").joinpath("input.json")
-    print("SOURCE ?", source, pkg_files("aws_s3_files_autosync"))
     LOG.info(f"Validating input against {path.dirname(source)}")
-    resolver = RefResolver(f"file://{path.dirname(source)}", config)
+    resolver = RefResolver(f"file://{path.abspath(path.dirname(source))}/", None)
     validate(
         config,
         json.loads(source.read_text()),
-        # resolver=resolver,
+        resolver=resolver,
     )
 
 

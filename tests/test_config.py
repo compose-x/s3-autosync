@@ -2,7 +2,7 @@
 Tests for config input validation
 """
 
-from os import environ, path
+from os import path
 
 import pytest
 from jsonschema.exceptions import ValidationError
@@ -16,18 +16,20 @@ HERE = path.abspath(path.dirname(__file__))
 @pytest.fixture()
 def valid_config():
     return {
-        "files": {
-            "/tmp/tox.ini": {
-                "S3": {
+        "folders": {
+            "/tmp/over": {
+                "whitelist": ["the_rainbow"],
+                "s3": {
                     "BucketName": "sacrificial-lamb",
-                    "ObjectKey": "aws_s3_files_autosync/test-files/tox.ini",
-                }
+                    "ObjectKey": "aws_s3_files_autosync/test-files/",
+                },
             },
-            "/tmp/HISTORY.rst": {
-                "S3": {
+            "/tmp/somewhere": {
+                "s3": {
                     "BucketName": "sacrificial-lamb",
-                    "ObjectKey": "aws_s3_files_autosync/test-files/HISTORY.rst",
-                }
+                    "ObjectKey": "aws_s3_files_autosync/test_files",
+                },
+                "whitelist_regex": ["*.log$"],
             },
         }
     }
@@ -37,13 +39,13 @@ def valid_config():
 def invalid_config():
     return {
         "/tmp/tox.ini": {
-            "S3": {
+            "s3": {
                 "BucketName": "sacrificial-lamb",
                 "ObjectKey": "aws_s3_files_autosync/test-files/tox.ini",
             }
         },
         "/tmp/HISTORY.rst": {
-            "S3": {
+            "s3": {
                 "BucketName": "sacrificial-lamb",
                 "ObjectKey": "aws_s3_files_autosync/test-files/HISTORY.rst",
             }
