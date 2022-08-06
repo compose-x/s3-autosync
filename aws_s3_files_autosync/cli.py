@@ -1,5 +1,5 @@
 #  SPDX-License-Identifier: MPL-2.0
-#  Copyright 2020-2021 John Mille <john@compose-x.io>
+#  Copyright 2020-2022 John Mille <john@compose-x.io>
 
 """Console script for aws_s3_files_autosync."""
 
@@ -8,7 +8,7 @@ import sys
 from os import environ
 
 from aws_s3_files_autosync.common import init_config
-from aws_s3_files_autosync.local_sync import init_local_watch_dog
+from aws_s3_files_autosync.local_sync import Cerberus
 
 
 class MissingConfig(ValueError):
@@ -64,7 +64,8 @@ def local_sync_main():
     Uses watchdog to drive the the changes, only based on local files changes.
     """
     config = main()
-    init_local_watch_dog(config)
+    watchdog = Cerberus(config)
+    watchdog.run()
 
 
 if __name__ == "__main__":

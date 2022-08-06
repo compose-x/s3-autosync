@@ -1,3 +1,12 @@
+#  SPDX-License-Identifier: MPL-2.0
+#  Copyright 2020-2022 John Mille <john@compose-x.io>
+
+
+"""
+S3 files manipulation classes and functions
+"""
+
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Union
@@ -10,17 +19,13 @@ if TYPE_CHECKING:
 
 import datetime
 from datetime import datetime as dt
-from os import path
+from os import path, stat
 
 import pytz
 from boto3 import Session
 from botocore.exceptions import ClientError
 
-from aws_s3_files_autosync.common import setup_logging
-
-PRIORITY_TO_CLOUD = 1
-PRIORITY_TO_LOCAL = 2
-LOG = setup_logging()
+from aws_s3_files_autosync.logging import LOG
 
 
 def get_iam_override_session(
@@ -115,7 +120,11 @@ class S3ManagedFile:
         return self.path
 
     @property
-    def local_last_modified(self) -> datetime.datetime:
+    def s3_repr(self) -> str:
+        return f"{self.bucket_name}/{self.s3_path}"
+
+    @property
+    def local_last_modified(self) -> Union[datetime.datetime, None]:
         """
         Last modified datetime for local file
         :return:
@@ -125,14 +134,14 @@ class S3ManagedFile:
         return None
 
     @property
-    def _local_last_modified(self):
+    def _local_last_modified(self) -> datetime.datetime:
         return self._local_last_modified
 
     @_local_last_modified.setter
     def _local_last_modified(self, modified):
         self._local_last_modified = modified
 
-    def local_has_changed(self):
+    def local_has_changed(self) -> bool:
         """
         Checks if the local last modified changed.
         """
@@ -168,17 +177,13 @@ class S3ManagedFile:
     def exists(self) -> bool:
         """
         Whether the file exists or not in filesystem
-
-        :return: If the file exists and is a file
-        :rtype: bool
         """
         return path.isfile(self.path)
 
-    def updated_in_s3(self, timestamp=None):
+    def updated_in_s3(self, timestamp=None) -> bool:
         """
         Checks whether the file exists in AWS S3 Bucket or not.
 
-        :rtype: bool
         :raises: botocore.exceptions.ClientError if the ClientError code is not 404
         """
         if timestamp is None:
@@ -189,9 +194,7 @@ class S3ManagedFile:
                 return True
             except ClientError as error:
                 if error.response["Error"]["Code"] == "304":
-                    print(
-                        f"WatchedFolderToSync in S3 was not modified since {timestamp}. Uploading newer file"
-                    )
+                    LOG.debug(f"In S3 was not modified since {timestamp}.")
                     return False
         return False
 
@@ -213,31 +216,51 @@ class S3ManagedFile:
                 return False
             raise
 
-    def upload(self, override_key=None):
+    def upload(self, override_key: str = None) -> None:
         """
         Simple method to upload the file data content to AWS S3
         """
-        with open(self.path, "rb") as data:
-            if not override_key:
-                self.object.Object().upload_fileobj(data)
-            else:
-                override_object = self.resource.Object(self.bucket_name, override_key)
-                override_object.upload_fileobj(data)
+        try:
+            if stat(self.path).st_size == 0:
+                LOG.debug(f"File {self.path} is empty. Skipping upload")
+                return
+            if self.exists_in_s3():
+                LOG.debug(
+                    f"{self.s3_repr} - "
+                    "Creating backup file in S3 before pushing new one with same name"
+                )
+                self.create_s3_backup()
+            with open(self.path, "rb") as data:
+                if not override_key:
+                    self.object.Object().upload_fileobj(data)
+                else:
+                    override_object = self.resource.Object(
+                        self.bucket_name, override_key
+                    )
+                    override_object.upload_fileobj(data)
+        except OSError as error:
+            LOG.exception(error)
+            LOG.error("Failed to upload file to S3")
 
-    def download(self, override_path=None):
+    def download(self, override_path: str = None) -> None:
         """
         Simple method to download the file from S3
         """
         with open(self.path if not override_path else override_path, "wb") as data:
             self.object.Object().download_fileobj(data)
 
-    def create_s3_backup(self):
+    def create_s3_backup(self, exit_on_failure: bool = False) -> None:
         """
         Creates a copy of the current object into S3 with the last modified timestamp of the original file.
         Gets the file extension (if any) and appends it back to the extension back for ease.
         """
         if not self.exists_in_s3():
-            print("ERROR - File not present in S3 for copy to backup")
+            LOG.error(f"{self.s3_repr} - File not present in S3 for copy to backup")
+            if exit_on_failure:
+                raise FileNotFoundError(
+                    "Source file in S3 not found for copy into backup."
+                )
+            return
         backup_suffix = self.object.last_modified.timestamp()
         file_backup = self.resource.Object(
             self.bucket_name,

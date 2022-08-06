@@ -1,0 +1,22 @@
+---
+# Test & Example for managed MySQL options
+
+mysqlDb:
+  testdb:
+    hostname: mariadb
+    port: 3306
+    username: root
+    password: ROOT_ACCESS_PASSWORD
+    database: USER_DB_NAME
+    bin_logs:
+      path: dbdata/log/mysql
+      folder:
+        s3:
+          bucket_name: trashbin
+          prefix_key: "mariadb_dumps_files_test/"
+        whitelist_regex:
+          - "mariadb-bin.[0-9]+$"
+        blacklist_regex:
+          - (.*\~.*)
+        whitelist:
+          - "mariadb-bin.index"

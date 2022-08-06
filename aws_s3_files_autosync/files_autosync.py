@@ -1,11 +1,9 @@
 #  SPDX-License-Identifier: MPL-2.0
-#  Copyright 2020-2021 John Mille <john@compose-x.io>
+#  Copyright 2020-2022 John Mille <john@compose-x.io>
 
 """Files watcher."""
 
-from aws_s3_files_autosync.common import setup_logging
-
-LOG = setup_logging()
+from aws_s3_files_autosync.logging import LOG
 
 
 def handle_both_files_present(file):
@@ -15,23 +13,23 @@ def handle_both_files_present(file):
     :param WatchedFolderToSync file: The file to evaluate.
     """
     if file.s3_last_modified == file.local_last_modified:
-        LOG.info(f"{file} - not modified since {file.local_last_modified}")
+        LOG.debug(f"{file} - not modified since {file.local_last_modified}")
     elif (
         file.s3_last_modified > file.local_last_modified
         and not file.local_and_remote_size_identical()
     ):
-        LOG.info(f"{file} - newer S3 version")
+        LOG.debug(f"{file} - newer S3 version")
         file.download()
-        LOG.info(f"{file.object.key} - downloaded to {file.path}")
+        LOG.debug(f"{file.object.key} - downloaded to {file.path}")
         file._local_last_modified = file.local_last_modified
     elif (
         file.local_last_modified > file.s3_last_modified
         and not file.local_and_remote_size_identical()
     ):
-        LOG.info(f"{file} - newer local version.")
+        LOG.debug(f"{file} - newer local version.")
         file.create_s3_backup()
         file.upload()
-        LOG.info(f"{file.path} - uploaded to {file.object.key}")
+        LOG.debug(f"{file.path} - uploaded to {file.object.key}")
         file.object.load()
 
 
@@ -57,15 +55,15 @@ def check_s3_changes(file):
         handle_both_files_present(file)
 
     elif file.exists_in_s3() and not file.exists():
-        LOG.info(f"{file} - initial download from S3")
+        LOG.debug(f"{file} - initial download from S3")
         file.download()
         LOG.debug(f"{file} - downloaded from S3 - {file.object.size}")
     elif file.exists() and not file.exists_in_s3():
-        LOG.info(f"{file} - Exists locally, not in cloud. Initial upload")
+        LOG.debug(f"{file} - Exists locally, not in cloud. Initial upload")
         file.upload()
         file.object.load()
         LOG.debug(f"{file} - Uploaded. {file.object.size}")
     elif file.local_and_remote_size_identical():
         LOG.debug(f"{file} is the same locally and in AWS S3. {file.object.size}")
     else:
-        LOG.info(f"WatchedFolderToSync {file} does not exist locally or in S3")
+        LOG.debug(f"WatchedFolderToSync {file} does not exist locally or in S3")

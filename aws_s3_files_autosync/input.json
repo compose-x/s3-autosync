@@ -4,6 +4,7 @@
   "type": "object",
   "title": "inputs.json",
   "id": "inputs.json",
+  "$comment": "LICENSE MPL-2.0 - Copyright John Mille<john@compose-x.io>",
   "description": "Definition for Files watcher",
   "additionalProperties": false,
   "properties": {
@@ -19,21 +20,17 @@
       "uniqueItems": true,
       "additionalProperties": false,
       "patternProperties": {
-        "[\\W]+$": {
+        "[\\w]+$": {
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "s3_default",
             "hostname",
             "username",
             "password",
             "database",
-            "binlogs-folder"
+            "bin_logs"
           ],
           "properties": {
-            "s3_default": {
-              "$ref": "#/definitions/S3"
-            },
             "hostname": {
               "type": "string",
               "format": "hostname"
@@ -56,14 +53,29 @@
             "database": {
               "type": "string"
             },
-            "binlogs-folder": {
-              "$ref": "#/definitions/Folder"
+            "bin_logs": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Allows to define settings for binary logs backup. Triggers a DB dump capture on close.",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "folder": {
+                  "description": "Folder with the binary log files to monitor.",
+                  "$ref": "#/definitions/Folder"
+                }
+              }
             },
             "dumps": {
               "type": "object",
               "additionalProperties": false,
               "description": "Configure how dumps are created and stored",
               "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Optionally, set the path you want to save the mysql dumps to."
+                },
                 "folder": {
                   "$ref": "#/definitions/Folder"
                 },
