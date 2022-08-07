@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aws_s3_files_autosync"
-version = "0.0.1"
+version = "0.1.0"
 description = "Files watchdog to autosync with AWS S3"
 authors = ["johnpreston <john@compose-x.io>"]
 license = "MPL-2.0"
@@ -65,7 +65,7 @@ omit = [
 github_url = "https://github.com/compose-x/aws_s3_files_autosync"
 
 [tool.tbump.version]
-current = "0.0.1"
+current = "0.1.0"
 
 regex = '''
   (?P<major>\d+)
