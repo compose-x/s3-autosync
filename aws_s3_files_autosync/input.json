@@ -24,13 +24,28 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "hostname",
             "username",
             "password",
             "database",
             "bin_logs"
           ],
+          "oneOf": [
+            {
+              "required": [
+                "hostname"
+              ]
+            },
+            {
+              "required": [
+                "socket_path"
+              ]
+            }
+          ],
           "properties": {
+            "socket_path": {
+              "type": "string",
+              "description": "Path to the DB Socket"
+            },
             "hostname": {
               "type": "string",
               "format": "hostname"
@@ -44,17 +59,24 @@
             },
             "username": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "DB user name with access to database"
             },
             "password": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "DB user password with access to database"
             },
             "database": {
-              "type": "string"
+              "type": "string",
+              "description": "Name of the database to get .sql dumps for"
             },
             "bin_logs": {
               "type": "object",
+              "required": [
+                "path",
+                "folder"
+              ],
               "additionalProperties": false,
               "description": "Allows to define settings for binary logs backup. Triggers a DB dump capture on close.",
               "properties": {

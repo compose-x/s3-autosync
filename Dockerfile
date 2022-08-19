@@ -10,12 +10,11 @@ RUN yum repolist; \
 
 FROM $BASE_IMAGE as wheel
 WORKDIR /app
-COPY . /app
 RUN pip install pip poetry -U
+COPY . /app
 RUN poetry build
-
 
 FROM mysql-clients as app
 COPY --from=wheel /app/dist/*.whl /tmp/
 RUN pip install pip --no-cache-dir -U; pip install /tmp/*.whl --no-cache-dir
-ENTRYPOINT ["local-to-s3-watchdog"]
+ENTRYPOINT ["python", "-u", "-m", "aws_s3_files_autosync.cli"]

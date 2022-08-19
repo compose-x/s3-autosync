@@ -35,6 +35,8 @@ mypy-boto3 = "^1.24"
 pyclean = "^2.2.0"
 twine = "^4.0.1"
 pyupgrade = "^2.37.3"
+mypy-boto3-ssm = "^1.24.39"
+mypy-boto3-s3 = "^1.24.36"
 
 [tool.poetry.scripts]
 local-auto-sync = "aws_s3_files_autosync.cli:local_sync_main"

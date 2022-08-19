@@ -3,14 +3,21 @@
 
 """Files watcher."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .s3_handler import S3ManagedFile
+
 from aws_s3_files_autosync.logging import LOG
 
 
-def handle_both_files_present(file):
+def handle_both_files_present(file: S3ManagedFile):
     """
     Function to go over the conditions when the file is present locally and in S3, of a different size and timestamp
 
-    :param WatchedFolderToSync file: The file to evaluate.
+    :param S3ManagedFile file: The file to evaluate.
     """
     if file.s3_last_modified == file.local_last_modified:
         LOG.debug(f"{file} - not modified since {file.local_last_modified}")
@@ -33,7 +40,7 @@ def handle_both_files_present(file):
         file.object.load()
 
 
-def check_s3_changes(file):
+def check_s3_changes(file: S3ManagedFile):
     """
     Function to check whether the file in S3 changed.
     Logic for updates
@@ -45,7 +52,7 @@ def check_s3_changes(file):
       if priority is to cloud -> download from S3
       if priority is to local -> upload to S3
 
-    :param WatchedFolderToSync file: The file to evaluate.
+    :param S3ManagedFile file: The file to evaluate.
     """
     if (
         file.exists()
@@ -55,15 +62,15 @@ def check_s3_changes(file):
         handle_both_files_present(file)
 
     elif file.exists_in_s3() and not file.exists():
-        LOG.debug(f"{file} - initial download from S3")
+        LOG.info(f"{file} - initial download from S3")
         file.download()
-        LOG.debug(f"{file} - downloaded from S3 - {file.object.size}")
+        LOG.info(f"{file} - downloaded from S3 - {file.object.size}")
     elif file.exists() and not file.exists_in_s3():
-        LOG.debug(f"{file} - Exists locally, not in cloud. Initial upload")
+        LOG.info(f"{file} - Exists locally, not in cloud. Initial upload")
         file.upload()
         file.object.load()
-        LOG.debug(f"{file} - Uploaded. {file.object.size}")
+        LOG.info(f"{file} - Uploaded. {file.object.size}")
     elif file.local_and_remote_size_identical():
-        LOG.debug(f"{file} is the same locally and in AWS S3. {file.object.size}")
+        LOG.info(f"{file} is the same locally and in AWS S3. {file.object.size}")
     else:
-        LOG.debug(f"WatchedFolderToSync {file} does not exist locally or in S3")
+        LOG.info(f"File {file} does not exist locally or in S3")

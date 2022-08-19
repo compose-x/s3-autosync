@@ -3,13 +3,12 @@
 
 mysqlDb:
   testdb:
-    hostname: mariadb
-    port: 3306
+    socket_path: /run/mysqld/mysqld.sock
     username: root
     password: ROOT_ACCESS_PASSWORD
     database: USER_DB_NAME
     bin_logs:
-      path: dbdata/log/mysql
+      path: /dbdata/log/mysql
       folder:
         s3:
           bucket_name: trashbin
@@ -20,3 +19,13 @@ mysqlDb:
           - (.*\~.*)
         whitelist:
           - "mariadb-bin.index"
+    dumps:
+      path: /dumps
+      folder:
+        s3:
+          bucket_name: trashbin
+          prefix_key: "mariadb_dumps_files_test/"
+        whitelist_regex:
+          - ".*.sql$"
+      ssm_backup:
+        parameter_name: /mariadb/s3-autosync/latest-dump.sql

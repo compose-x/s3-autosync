@@ -4,11 +4,13 @@
 """Console script for aws_s3_files_autosync."""
 
 import argparse
+import logging
 import sys
 from os import environ
 
 from aws_s3_files_autosync.common import init_config
 from aws_s3_files_autosync.local_sync import Cerberus
+from aws_s3_files_autosync.logging import LOG
 
 
 class MissingConfig(ValueError):
@@ -39,8 +41,15 @@ def main():
         required=False,
         help="Configuration for execution is in an environment variable",
     )
+    parser.add_argument(
+        "--debug", action="store_true", default=False, help="Enable debug logging"
+    )
     args = parser.parse_args()
     print("Arguments: " + str(args._))
+
+    if args.debug and LOG.hasHandlers():
+        LOG.setLevel(logging.DEBUG)
+        LOG.handlers[0].setLevel(logging.DEBUG)
 
     if not (args.env_var or args.file_path) and environ.get("FILES_CONFIG", None):
         config = init_config(env_var="FILES_CONFIG")

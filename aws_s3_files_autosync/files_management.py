@@ -170,17 +170,25 @@ def get_file_from_event(
     Defaults use the object definition, allows for override inclusion regular expression.
     """
     if event.is_directory:
+        LOG.debug("Event is for a directory.")
         return
-    if not folder.file_is_to_watch(event.src_path):
-        return None
-    if override_match_regex and not re.match(override_match_regex, event.src_path):
-        return None
-    if event.src_path in folder.files:
-        return folder.files[event.src_path]
+    _file_name = path.basename(event.src_path)
+    if event.src_path not in folder.files:
+        if not folder.file_is_to_watch(event.src_path):
+            LOG.debug(f"{event.src_path} does not match whitelisting")
+            return None
+        elif override_match_regex and not re.match(override_match_regex, _file_name):
+            LOG.debug(
+                f"{_file_name} does not match with override {override_match_regex}"
+            )
+            return None
+        else:
+            LOG.debug(f"New file to monitor {event.src_path}")
+            file_obj = S3ManagedFile(event.src_path, folder)
+            folder.files[event.src_path] = file_obj
+            return file_obj
     else:
-        file_obj = S3ManagedFile(event.src_path, folder)
-        folder.files[event.src_path] = file_obj
-        return file_obj
+        return folder.files[event.src_path]
 
 
 def file_is_to_watch(

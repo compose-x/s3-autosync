@@ -16,6 +16,7 @@ from tempfile import TemporaryDirectory
 from compose_x_common.compose_x_common import keyisset, set_else_none
 
 from aws_s3_files_autosync.common import get_prefix_key, lean_path
+from aws_s3_files_autosync.files_autosync import check_s3_changes
 from aws_s3_files_autosync.files_management import (
     Handler,
     ManagedFolder,
@@ -23,6 +24,7 @@ from aws_s3_files_autosync.files_management import (
     get_file_from_event,
 )
 from aws_s3_files_autosync.logging import LOG
+from aws_s3_files_autosync.s3_handler import S3ManagedFile
 
 
 def set_regexes_list(regexes_str: list[str]) -> list[re.Pattern]:
@@ -38,16 +40,26 @@ def set_regexes_list(regexes_str: list[str]) -> list[re.Pattern]:
 
 
 def build_sql_command(config: dict) -> str:
-    cmd = (
-        "mysqldump --protocol=TCP"
-        f" -h{config['hostname']}"
-        f" -u{config['username']}"
-        f" -p{config['password']}"
-        f" --port={config['port']}"
-        f" {config['database']}"
-        if keyisset("port", config)
-        else "--port=3306"
-    )
+    if keyisset("hostname", config):
+        cmd = (
+            "mysqldump --protocol=TCP"
+            f" -h{config['hostname']}"
+            f" -u{config['username']}"
+            f" -p{config['password']}"
+            f" --port={config['port']}"
+            if keyisset("port", config)
+            else "--port=3306" f" {config['database']}"
+        )
+    elif keyisset("socket_path", config):
+        cmd = (
+            "mysqldump"
+            f" --socket={lean_path(config['socket_path'])}"
+            f" -u{config['username']}"
+            f" -p{config['password']}"
+            f" {config['database']}"
+        )
+    else:
+        raise KeyError("Missing hostname or socket_path", config.keys())
     return cmd
 
 
@@ -71,37 +83,18 @@ class ManagedMySQL:
         name: str,
         config: dict,
     ):
+        self._job_name = name
         self._config = deepcopy(config)
         self.config = config
         self._binlogs_path = self._config["bin_logs"]["path"]
-        self._dumps_config = set_else_none("dumps", config, alt_value={})
+        self._dumps_config = set_else_none(
+            "dumps", config, alt_value={"interval": "15m"}
+        )
         self._temp_dir = None
         if not self._dumps_config:
-            self._temp_dir = TemporaryDirectory()
-            self._dumps_path = self._temp_dir.name
-            folder_config = deepcopy(self._config["bin_logs"]["folder"])
-            if keyisset("whitelist", folder_config):
-                del folder_config["whitelist"]
-            if keyisset("blacklist", folder_config):
-                del folder_config["blacklist"]
-            folder_config["whitelist_regex"]: list = [r".*.sql$"]
-            folder_config["s3"]["prefix_key"] = lean_path(
-                f"{name}/dumps"
-                if not keyisset("prefix_key", folder_config["s3"])
-                else f"{get_prefix_key(folder_config['s3']['prefix_key'])}{name}/dumps"
-            )
-            self._dumps_config: dict = {
-                "path": self._dumps_path,
-                "folder": folder_config,
-            }
-
+            self.create_dumps_config_from_bin_logs()
         else:
-            if not keyisset("path", self._dumps_config):
-                self._temp_dir = TemporaryDirectory()
-                self._dumps_path = self._temp_dir.name
-                self._dumps_config["path"] = self._temp_dir.name
-            if not keyisset("whitelist_regex", self._dumps_config):
-                self._dumps_config["folder"]["whitelist_regex"]: list = [r".*.sql$"]
+            self.set_dumps_config()
 
         self._sql_command = build_sql_command(config)
         self._bin_logs_config = config["bin_logs"]
@@ -109,13 +102,12 @@ class ManagedMySQL:
             self._binlogs_path, self._bin_logs_config["folder"], self
         )
         self.dumps_folder = ManagedFolder(
-            self._dumps_path, self._dumps_config["folder"]
+            self.dumps_path, self._dumps_config["folder"], create=True
         )
-        self.post_init_summary()
 
     @property
     def dumps_path(self) -> str:
-        return path.abspath(self._dumps_path)
+        return path.abspath(self._dumps_config["path"])
 
     @property
     def dirname(self) -> str:
@@ -129,13 +121,36 @@ class ManagedMySQL:
     def abspath(self) -> str:
         return path.abspath(self._binlogs_path)
 
-    def post_init_summary(self):
+    def create_dumps_config_from_bin_logs(self):
+        self._temp_dir = TemporaryDirectory()
+        folder_config = self.import_bin_logs_folder_config()
+        self._dumps_config: dict = {
+            "path": self._temp_dir.name,
+            "folder": folder_config,
+        }
 
-        LOG.debug(
-            f"MySQL details: {self._config['username']}@{self._config['hostname']}"
+    def set_dumps_config(self):
+        if not keyisset("path", self._dumps_config):
+            self._temp_dir = TemporaryDirectory()
+            self._dumps_config["path"] = self._temp_dir.name
+
+        if not keyisset("folder", self._dumps_config):
+            folder_config = self.import_bin_logs_folder_config()
+            self._dumps_config["folder"] = folder_config
+
+    def import_bin_logs_folder_config(self) -> dict:
+        folder_config = deepcopy(self._config["bin_logs"]["folder"])
+        if keyisset("whitelist", folder_config):
+            del folder_config["whitelist"]
+        if keyisset("blacklist", folder_config):
+            del folder_config["blacklist"]
+        folder_config["whitelist_regex"]: list = [r".*.sql$"]
+        folder_config["s3"]["prefix_key"] = lean_path(
+            f"{self._job_name}/dumps"
+            if not keyisset("prefix_key", folder_config["s3"])
+            else f"{get_prefix_key(folder_config['s3']['prefix_key'])}{self._job_name}/dumps"
         )
-        LOG.debug(f"Bin logs path: {self.abspath}")
-        LOG.debug(f"MySQL Dumps path: {self._dumps_path}")
+        return folder_config
 
     def create_mysql_dump(self, name: str):
         """
@@ -163,6 +178,11 @@ class ManagedMySQL:
                     LOG.debug(f"Found index file {path.join(root, _file)}")
                     index_file = path.join(root, _file)
                     self.create_dump_from_index_file(destination_file, index_file)
+
+    def auto_store_index_files(self, files_paths: list[str]) -> None:
+        for file_path in files_paths:
+            s3_file = S3ManagedFile(file_path, self)
+            check_s3_changes(s3_file)
 
     def create_dump_from_index_file(self, destination_file, index_file):
         index_dir_path = path.abspath(path.dirname(index_file))
@@ -215,6 +235,7 @@ class ManagedMySQL:
             LOG.debug(stdout.decode("utf-8"))
         if stderr:
             LOG.error("Error output from command")
+            LOG.error(cmd)
             LOG.error(stderr.decode("utf-8"))
         return process.returncode
 
@@ -273,11 +294,11 @@ class BinLogHandler(Handler):
         return self._sql_manager
 
     def on_closed(self, event) -> None:
-
         file = get_file_from_event(
             event, self.folder, override_match_regex=r"mariadb-bin.[0-9]+$"
         )
         if not file:
+            LOG.warning(f"File {event.src_path} not found in the watcher files")
             return
         LOG.debug(f"{file.path} has been closed. Updating to S3.")
         file.upload()

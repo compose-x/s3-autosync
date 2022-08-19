@@ -16,6 +16,7 @@ from compose_x_common.compose_x_common import keyisset, set_else_none
 
 if TYPE_CHECKING:
     from .files_management import ManagedFolder
+    from .mysqldb_management import ManagedMySQL
 
 import datetime
 from datetime import datetime as dt
@@ -83,7 +84,7 @@ class S3ManagedFile:
     Class to represent a file and manage the sync to S3
     """
 
-    def __init__(self, file_path: str, folder: ManagedFolder):
+    def __init__(self, file_path: str, folder: Union[ManagedFolder, ManagedMySQL]):
         self.folder = folder
         self._file_path = file_path
         self.path = path.abspath(file_path)

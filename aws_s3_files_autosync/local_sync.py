@@ -43,7 +43,8 @@ class Cerberus:
         except KeyboardInterrupt:
             graceful_observers_close(self.observers)
             LOG.debug("\rExited due to Keyboard interrupt")
-        except ChildProcessError:
+        except ChildProcessError as error:
+            LOG.exception(error)
             graceful_observers_close(self.observers)
             LOG.error("One of the observers died.")
         for observer in self.observers:
@@ -101,8 +102,8 @@ def cycle_over_folders(folders: dict, observers: list):
                     observers.append(folder.watcher.observer)
             except FileNotFoundError:
                 LOG.info(f"{folder.path} - Not yet available")
-            else:
-                raise ChildProcessError(folder.path, "Observer died")
+            except Exception as error:
+                LOG.exception(error)
 
 
 def init_db_jobs(db_jobs: dict, observers: list) -> None:
@@ -137,7 +138,7 @@ def cycle_over_db_jobs(db_jobs: dict, observers: list) -> None:
             except FileNotFoundError:
                 LOG.debug(f"mysqlDb.{db_job_name} - BinLogs not yet available")
             except Exception as error:
-                raise ChildProcessError(db_job_name, "Observer died", error)
+                LOG.exception(error)
 
 
 def final_dumps_db_jobs(db_jobs):

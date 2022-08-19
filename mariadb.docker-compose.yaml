@@ -1,23 +1,32 @@
 version: "3.8"
 volumes:
   dbdata:
+  mariadb_run:
 
 services:
-  logs_backup:
+  sql-s3-autosync:
     build:
       context: .
     image: public.ecr.aws/compose-x/s3-autosync:${IMAGE_TAG:-dev}
     volumes:
-      - dbdata:/dbdata
+#      - dbdata:/dbdata
+      - ./mariadb:/dbdata
       - ./mariadb_mysql.yaml:/tmp/mariadb_mysql.yaml:ro
       - ~/.aws:/root/.aws
+      - mariadb_run:/run/mysqld/
+      - ./dumps:/dumps
     environment:
       AWS_PROFILE: ${AWS_PROFILE:-default}
-      LOGLEVEL: CRITICAL
     command:
       - -f
       - /tmp/mariadb_mysql.yaml
+#      - --debug
     stop_grace_period: 1m
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 32768
+        hard: 65535
 
   mariadb:
     image: lscr.io/linuxserver/mariadb:latest
@@ -32,9 +41,16 @@ services:
       MYSQL_PASSWORD: DATABASE_PASSWORD
 #      REMOTE_SQL: http://URL1/your.sql,https://URL2/your.sql #optional
     volumes:
-      - dbdata:/config
+#      - dbdata:/config
+      - ./mariadb:/config
+      - ./custom.cnf:/config/custom.cnf:ro
+      - mariadb_run:/run/mysqld/
     ports:
       - 9336:3306/tcp
     restart: unless-stopped
     depends_on:
-      - logs_backup
+      - sql-s3-autosync
+    ulimits:
+      nofile:
+        soft: 32768
+        hard: 65535
