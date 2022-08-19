@@ -4,7 +4,7 @@ FROM $BASE_IMAGE as mysql-clients
 COPY mariadb.repo /etc/yum.repos.d/mariadb.repo
 RUN yum repolist; \
     yum update --security -y ;\
-    yum install MariaDB-client --downloadonly; \
+    yum install MariaDB-client --downloadonly || exit 1; \
     find /var/cache/yum/ -iname "*mariadb*client*.rpm" | xargs -i rpm -Uvh {} --nodeps;\
     yum clean all; rm -rf /var/cache/yum
 
