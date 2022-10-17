@@ -145,7 +145,7 @@ class Handler(FileSystemEventHandler):
                 f"{file.path} - Failure to upload on create. Will upload on close."
             )
 
-    def on_closed(self, event) -> None:
+    def on_modified(self, event) -> None:
         file = get_file_from_event(event, self.folder)
         if not file:
             return
