@@ -108,8 +108,13 @@ def cycle_over_folders(folders: dict, observers: list):
             except RuntimeError as error:
                 LOG.exception(error)
                 LOG.error(f"Stopping observer for {folder.path}")
-                observers.remove(folder.watcher.observer)
                 folder.watcher.observer.stop()
+                folder.watcher.observer.join()
+                try:
+                    observers.remove(folder.watcher.observer)
+                except Exception as error:
+                    LOG.exception(error)
+                    LOG.error("Failed to remove observer from observers?")
             except Exception as error:
                 LOG.error("Error with watcher for {folder.path}")
                 LOG.exception(error)

@@ -239,6 +239,9 @@ class S3ManagedFile:
                         self.bucket_name, override_key
                     )
                     override_object.upload_fileobj(data)
+        except ClientError as error:
+            LOG.exception(error)
+            LOG.error(f"Failed to upload {self.path} to S3")
         except OSError as error:
             LOG.exception(error)
             LOG.error("Failed to upload file to S3")
@@ -268,3 +271,4 @@ class S3ManagedFile:
             f"{self.object.key}-{backup_suffix}{path.splitext(self.path)[-1]}",
         )
         file_backup.copy({"Bucket": file_backup.bucket_name, "Key": self.object.key})
+        LOG.debug(f"Backup created for {self.s3_repr}")
