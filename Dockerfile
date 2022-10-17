@@ -1,20 +1,15 @@
-ARG BASE_IMAGE=public.ecr.aws/ews-network/python:3.9
+ARG BUILD_IMAGE=public.ecr.aws/ews-network/python:3.9
+ARG BASE_IMAGE=public.ecr.aws/docker/library/python:3.9.15-alpine
 
-FROM $BASE_IMAGE as mysql-clients
-COPY mariadb.repo /etc/yum.repos.d/mariadb.repo
-RUN yum repolist; \
-    yum update --security -y ;\
-    yum install MariaDB-client --downloadonly || exit 1; \
-    find /var/cache/yum/ -iname "*mariadb*client*.rpm" | xargs -i rpm -Uvh {} --nodeps;\
-    yum clean all; rm -rf /var/cache/yum
 
-FROM $BASE_IMAGE as wheel
+FROM $BUILD_IMAGE as wheel
 WORKDIR /app
 RUN pip install pip poetry -U
 COPY . /app
 RUN poetry build
 
-FROM mysql-clients as app
+FROM $BASE_IMAGE as app
+RUN apk add mariadb-client
 COPY --from=wheel /app/dist/*.whl /tmp/
-RUN pip install pip --no-cache-dir -U; pip install /tmp/*.whl --no-cache-dir
+RUN pip install /tmp/*.whl --no-cache-dir
 ENTRYPOINT ["python", "-u", "-m", "aws_s3_files_autosync.cli"]
