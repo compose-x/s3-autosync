@@ -95,6 +95,9 @@ def graceful_observers_close(observers: list) -> None:
 
 def cycle_over_folders(folders: dict, observers: list):
     for folder in folders.values():
+        LOG.debug(
+            f"Observer? {folder.watcher.observer} - {folder.watcher.observer.is_alive()}"
+        )
         if not folder.watcher.observer.is_alive():
             try:
                 folder.watcher.run()
@@ -102,7 +105,13 @@ def cycle_over_folders(folders: dict, observers: list):
                     observers.append(folder.watcher.observer)
             except FileNotFoundError:
                 LOG.info(f"{folder.path} - Not yet available")
+            except RuntimeError as error:
+                LOG.exception(error)
+                LOG.error(f"Stopping observer for {folder.path}")
+                observers.remove(folder.watcher.observer)
+                folder.watcher.observer.stop()
             except Exception as error:
+                LOG.error("Error with watcher for {folder.path}")
                 LOG.exception(error)
 
 

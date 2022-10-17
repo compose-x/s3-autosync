@@ -24,7 +24,7 @@ importlib-resources = "^5.9.0"
 pytz = "^2022.1"
 
 [tool.poetry.dev-dependencies]
-black = "^22.6.0"
+black = "^22.10.0"
 isort = "^5.10.1"
 flake8 = "^5.0"
 coverage = "^6.4.2"
@@ -34,7 +34,7 @@ tbump = "^6.9.0"
 mypy-boto3 = "^1.24"
 pyclean = "^2.2.0"
 twine = "^4.0.1"
-pyupgrade = "^2.37.3"
+pyupgrade = "^3.0"
 mypy-boto3-ssm = "^1.24.39"
 mypy-boto3-s3 = "^1.24.36"
 

@@ -34,8 +34,8 @@ def set_regexes_list(regexes_str: list[str]) -> list[re.Pattern]:
             regex_re = re.compile(regex)
             regexes.append(regex_re)
         except Exception as error:
-            LOG.debug(error)
-            LOG.debug(f"{regex} is not valid")
+            LOG.exception(error)
+            LOG.error(f"{regex} is not valid")
     return regexes
 
 
@@ -235,7 +235,6 @@ class ManagedMySQL:
             LOG.debug(stdout.decode("utf-8"))
         if stderr:
             LOG.error("Error output from command")
-            LOG.error(cmd)
             LOG.error(stderr.decode("utf-8"))
         return process.returncode
 

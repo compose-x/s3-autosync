@@ -1,6 +1,6 @@
 [mariadb]
 name=MariaDB
-baseurl=https://mirror.mariadb.org/yum/10.9.1/rhel/7/$basearch
+baseurl=https://mirror.mariadb.org/yum/10.10/rhel/7/$basearch
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1
 enabled=1
